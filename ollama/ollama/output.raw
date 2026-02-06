@@ -1,0 +1,3 @@
+docker run -d -p 11434:11434 --name ollama -m 12g ollama/ollama
+  979      docker exec -it ollama ollama pull deepseek-r1:7b
+  980      docker exec -it ollama ollama run deepseek-r1:7b

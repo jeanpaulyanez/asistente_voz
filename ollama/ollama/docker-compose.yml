@@ -1,0 +1,60 @@
+# docker-compose.yml - Solución estable con Ollama y Express en la misma red
+
+services:
+  # 1. SERVICIO DE OLLAMA (LLM)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_server
+    environment:
+      # OBLIGATORIO: Ollama debe escuchar en 0.0.0.0 dentro del contenedor
+      - OLLAMA_HOST=0.0.0.0 
+    
+    # Exponemos el puerto 11434 en el host (si el anterior fue detenido/removido)
+    ports:
+      - "11434:11434"
+      
+    volumes:
+      # Mantiene los modelos descargados persistentes
+      - ollama_data:/root/.ollama
+      
+    restart: unless-stopped
+    
+    # CLAVE: Usamos el comando de inicio simple 'serve' para evitar el loop de reinicio.
+    # El modelo 'deepseek-r1:1.5b' debe ser descargado manualmente (docker exec)
+    command: serve 
+    
+    # Si necesitas GPU, descomenta estas líneas (Requiere NVIDIA Toolkit instalado)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+
+  # 2. SERVICIO DE EXPRESS (API DE TEXTO)
+  api-texto:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: api_texto_gateway
+    
+    # Mapeamos el puerto 3000 interno al 9000 externo para acceso en la red.
+    ports:
+      - "9000:3000" 
+      
+    environment:
+      # CLAVE: Comunicación interna estable usando el nombre del servicio 'ollama'
+      - OLLAMA_HOST_INTERNAL=http://ollama:11434 
+      - PORT=3000
+      
+    # Asegura que Ollama esté disponible antes de iniciar la API
+    depends_on:
+      - ollama
+      
+    restart: unless-stopped
+    
+# Definición de volúmenes para persistencia
+volumes:
+  ollama_data:

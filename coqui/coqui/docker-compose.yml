@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  tts-api:
+    build: .
+    ports:
+      - "7000:7000"
+    restart: unless-stopped

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Captura de Audio con JavaScript</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+        button { padding: 10px 20px; font-size: 16px; margin: 10px; cursor: pointer; }
+        #downloadLink { display: none; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>Grabador de Audio del Navegador</h1>
+    <button id="startButton">🎙️ Empezar a Grabar</button>
+    <button id="stopButton" disabled>🛑 Detener Grabación</button>
+    <a id="downloadLink" download="grabacion.webm">Descargar Audio</a>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton');
+        const downloadLink = document.getElementById('downloadLink');
+
+        let mediaRecorder;
+        let audioChunks = [];
+
+        // Función para empezar a grabar
+        startButton.addEventListener('click', async () => {
+            try {
+                // Solicita acceso al micrófono
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                // Configura los eventos del grabador
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    // Crea un 'blob' con los datos grabados
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
+                    // Configura el enlace de descarga
+                    downloadLink.href = audioUrl;
+                    downloadLink.style.display = 'block';
+                    
+                    // Limpia los datos para una nueva grabación
+                    audioChunks = [];
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                // Inicia la grabación
+                mediaRecorder.start();
+                startButton.disabled = true;
+                stopButton.disabled = false;
+                downloadLink.style.display = 'none';
+
+                console.log('Grabación iniciada...');
+            } catch (err) {
+                console.error('Error al acceder al micrófono:', err);
+                alert('No se pudo acceder al micrófono. Asegúrate de dar permiso.');
+            }
+        });
+
+        // Función para detener la grabación
+        stopButton.addEventListener('click', () => {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                startButton.disabled = false;
+                stopButton.disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>
